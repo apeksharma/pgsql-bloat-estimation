@@ -1,8 +1,10 @@
 -- WARNING: executed with a non-superuser role, the query inspect only index on tables you are granted to read.
 -- WARNING: rows with is_na = 't' are known to have bad statistics ("name" type is not supported).
 -- This query is compatible with PostgreSQL 8.2 and after
-SELECT current_database(), nspname AS schemaname, tblname, idxname, bs*(relpages)::bigint AS real_size,
-  bs*(relpages-est_pages)::bigint AS extra_size,
+SELECT * 
+FROM (
+SELECT current_database(), nspname AS schemaname, tblname, idxname, bs*(relpages)/(1024*1024*1024)::bigint AS real_size,
+  bs*(relpages-est_pages)/(1024*1024*1024)::bigint AS extra_size,
   100 * (relpages-est_pages)::float / relpages AS extra_ratio,
   fillfactor,
   CASE WHEN relpages > est_pages_ff
@@ -97,4 +99,6 @@ FROM (
       ) AS rows_data_stats
   ) AS rows_hdr_pdg_stats
 ) AS relation_stats
-ORDER BY nspname, tblname, idxname;
+) as t
+WHERE schemaname = 'public' AND real_size > 1.0 AND extra_size > 1.0
+ORDER BY schemaname, tblname, idxname;
